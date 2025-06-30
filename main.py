@@ -29,11 +29,20 @@ class StudentDB(Base):
 # สร้างฐานข้อมูล
 Base.metadata.create_all(bind=engine)
 
-
+# Pydantic Model
 class Student(BaseModel):
     firstName : str
     lastName: str
     age : int
+
+class StudentCreated(Student):
+    pass
+
+class StudentResponse(Student):
+    id: int
+    class Config:
+        from_attributes = True
+
 
 @app.get("/")
 def hello_world():
