@@ -1,15 +1,12 @@
-from typing import Union
+from typing import Union, List
 
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, Depends,  HTTPException
 from pydantic import BaseModel
 
 from sqlalchemy import create_engine, Column, Integer, String
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, Session
 
-
-
-app = FastAPI()
 
 # ตั้งค่าและเชื่อมต่อกับฐานข้อมูล SQLite
 DATABASE_URL = "sqlite:///./test.db"
@@ -43,6 +40,15 @@ class StudentResponse(Student):
     class Config:
         from_attributes = True
 
+app = FastAPI()
+# Dependency
+
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
 
 @app.get("/")
 def hello_world():
@@ -57,14 +63,41 @@ async def create_item(request: Request):
     body = await request.json()
     return { "request body" : body }
 
-@app.post("/students")
-def create_student(student: Student):
-    return { "request body" : student }
+@app.post("/students", response_model=StudentResponse)
+async def create_student(student: StudentCreated, db: Session = Depends(get_db)):
+    db_student = StudentDB(firstName=student.firstName, lastName=student.lastName, age=student.age)
+    # db_student = Student(**student.model_dump())
+    db.add(db_student)
+    db.commit()
+    db.refresh(db_student)
+    return db_student
 
-@app.put("/students/{student_id}")
-def edit_student(student_id: int, student: Student):
-    return { "id" : student_id, "request body" : student}
+@app.get("/students/{student_id}", response_model=StudentResponse)
+async def read_student(student_id: int, db: Session = Depends(get_db)):
+    db_student = db.query(StudentDB).filter(StudentDB.id == student_id).first()
+    return db_student
+
+@app.get("/students", response_model=List[StudentResponse])
+async def read_students(db: Session = Depends(get_db)):
+    db_student = db.query(StudentDB).all()
+    return db_student
+
+@app.put("/students/{student_id}", response_model=StudentResponse)
+async def update_student(student_id: int, student: StudentCreated, db: Session = Depends(get_db)):
+    db_student = db.query(StudentDB).filter(StudentDB.id == student_id).first()
+    if db_student is None:
+        raise HTTPException(status_code=404, detail="Student not found")
+    for key, value in student.model_dump().items():
+        setattr(db_student, key, value)
+    db.commit()
+    db.refresh(db_student)
+    return db_student
 
 @app.delete("/students/{student_id}")
-def delete_student(student_id: int):
+async def delete_student(student_id: int, db: Session = Depends(get_db)):
+    db_student = db.query(StudentDB).filter(StudentDB.id == student_id).first()
+    if db_student is None:
+        raise HTTPException(status_code=404, detail="Student not found")
+    db.delete(db_student)
+    db.commit()
     return { "message" : f"Student {student_id} deleted"}
