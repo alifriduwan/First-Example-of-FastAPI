@@ -24,5 +24,9 @@ async def create_item(request: Request):
     return { "request body" : body }
 
 @app.post("/students")
-def create_stuent(student: Student):
+def create_student(student: Student):
     return { "request body" : student }
+
+@app.put("/students/{student_id}")
+def edit_student(student_id: int, student: Student):
+    return { "id" : student_id, "request body" : student}
