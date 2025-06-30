@@ -3,7 +3,7 @@ from typing import Union
 from fastapi import FastAPI, Request
 from pydantic import BaseModel
 
-from sqlalchemy import create_engine, Column, Integer, String, Float, Text
+from sqlalchemy import create_engine, Column, Integer, String
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, Session
 
@@ -17,6 +17,19 @@ DATABASE_URL = "sqlite:///./test.db"
 engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
+
+# สร้างโมเดลสำหรับฐานข้อมูล
+class StudentDB(Base):
+    __tablename__ = "students"
+    id = Column(Integer, primary_key=True, index=True)
+    firstName = Column(String, index=True)
+    lastName = Column(String, index=True)
+    age = Column(Integer, nullable=False)
+
+# สร้างฐานข้อมูล
+Base.metadata.create_all(bind=engine)
+
+
 class Student(BaseModel):
     firstName : str
     lastName: str
