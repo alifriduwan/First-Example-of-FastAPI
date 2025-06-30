@@ -30,3 +30,7 @@ def create_student(student: Student):
 @app.put("/students/{student_id}")
 def edit_student(student_id: int, student: Student):
     return { "id" : student_id, "request body" : student}
+
+@app.delete("/students/{student_id}")
+def delete_student(student_id: int):
+    return { "message" : f"Student {student_id} deleted"}
